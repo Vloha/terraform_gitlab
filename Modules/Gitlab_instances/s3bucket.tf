@@ -1,8 +1,8 @@
 resource "aws_s3_bucket" "Vbucket" {
-  bucket = "gitlab.runner-token"
+  bucket = "*"
   force_destroy = true
   tags = {
-    Name = "gitlab.runner-token"
+    Name = "*"
   }
 }
 resource "aws_s3_bucket_acl" "private" {
