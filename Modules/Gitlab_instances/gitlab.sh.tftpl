@@ -1,0 +1,19 @@
+#!/bin/bash
+
+#install Gitlab
+apt-get update
+apt-get install -y curl openssh-server ca-certificates tzdata perl unzip
+curl https://packages.gitlab.com/install/repositories/gitlab/gitlab-ee/script.deb.sh | sudo bash
+private_ip=`hostname -i`
+EXTERNAL_URL="http://$private_ip" apt-get install gitlab-ee
+
+#take runner token
+gitlab-rails runner -e production "puts Gitlab::CurrentSettings.current_application_settings.runners_registration_token" > /tmp/token.txt
+
+#aws cli
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+./aws/install
+
+#put ip and token to s3
+aws s3 cp /tmp/token.txt s3://${s3bucket_name}

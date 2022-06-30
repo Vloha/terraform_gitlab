@@ -1,0 +1,43 @@
+#!/bin/bash
+
+#install runner
+apt-get update
+curl -L "https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh" | sudo bash
+apt-get install gitlab-runner unzip
+
+#aws cli
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+./aws/install
+
+#check if gitlab is running
+while true
+do
+    response=$(curl -s -o /dev/null -w "%%{http_code}" http://${ip}/users/sign_in)
+    if [ $response==200 ]; then
+        echo "found 200" > text.txt
+        break
+    fi
+    sleep 5
+done
+
+#install docker
+apt-get install ca-certificates gnupg lsb-release
+mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+apt-get update
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+#Get ip and token
+aws s3 cp s3://${s3bucket_name}/token.txt /tmp/token.txt
+
+#register runner
+token = $(tail -n 1 /tmp/token.txt)
+sudo gitlab-runner register \
+    --non-interactive \
+    --url "http://${ip}" \
+    --registration-token "$token" \
+    --description "codechecker" \
+    --executor "docker"
+    --docker-image "ubuntu:latest"
